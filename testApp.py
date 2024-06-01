@@ -1,14 +1,16 @@
 
 from tkinter import *
+
+import datetime
+import time
 from tkPDFViewer import tkPDFViewer as pdf
 from tkinter import filedialog
 import PyPDF2
-from screeninfo import get_monitors
-
+import tkVideoPlayer as video
 main=  Tk()
 
 #Home page
-
+main.state('zoomed')
 page1 = Frame(main, padx=100, pady=100)
 page1.grid(row=0, column=0)
 
@@ -116,22 +118,222 @@ Next.grid(row=9)
 
 
 #video
-page3 = Frame(main,padx=100, pady=100)
+page3 = Frame(main, width= 500,height=500)
 page3.grid(row=0, column=0)
 
 title3 = Label(page3, text="video analysis")
 title3.grid(pady=20, column=0, row=0)
 
+videoplayer=video.TkinterVideo(page3)
+def displayVid():
+    global videoplayer
+    vid_location = filedialog.askopenfilename()
+    
+    videoplayer.bind("<<Loaded>>", lambda e: e.widget.config(width=0.7*main.winfo_screenwidth(), height=0.7*main.winfo_screenheight()))
+    videoplayer.load(vid_location)
+    videoplayer.consistant_frame_rate=True
+    #videoplayer.set_size((0.9*main.winfo_screenheight()/1.41, 0.9*main.winfo_screenheight()))
+    videoplayer.play()
+    videoplayer.grid(column=3, row=4)
 
+startVid = Button(page3, text="Select video file", command=displayVid)
+startVid.grid()
+
+container= Frame(page3)
+container.grid(row=2, column=3, rowspan=1)
+vidLooplist=[]
+labelList=[]
+
+def bubbleSort(arr):
+    
+    n = len(arr)
+
+    # For loop to traverse through all 
+    # element in an array
+    for i in range(n):
+        for j in range(0, n - i - 1):
+            
+            # Range of the array is from 0 to n-i-1
+            # Swap the elements if the element found 
+            #is greater than the adjacent element
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                labelList[j], labelList[j+1] = labelList[j+1], labelList[j]
+def getSeconds():
+    return round(videoplayer._frame_number/int(videoplayer._video_info['framerate']))
+def update():
+    bubbleSort(vidLooplist)
+    for i in range(len(labelList)):
+        labelList[i].grid(row=0,column=i)
+def restart():
+    global vidLooplist
+    for i in range(len(vidLooplist)):
+        vidLooplist[i].gmaster.destroy()
+    vidLooplist=[]
+def addTimestampt():
+    global vidLooplist
+    mtime = getSeconds()
+    
+    timestamp = Button(container, text=mtime)
+    timestamp.config(command=lambda:remove(timestamp))
+    timestamp.grid(row=0, column=len(vidLooplist))
+    labelList.append(timestamp)
+    vidLooplist.append(mtime)
+def remove(self):
+    print(self.grid_info()['column'])
+    vidLooplist.pop(self.grid_info()['column'])
+    
+    self.destroy()
+
+  
+
+recordTime = Button(page3, text="mark timestamp", command=addTimestampt)
+recordTime.grid(row=1, column=2)
+
+updateList= Button(page3, text="update list", command=update)
+updateList.grid(row=0, column=1)
+#Select looping range
+
+
+
+
+
+
+
+
+
+#Video player
+
+controller = Frame(page3)
+controller.grid(row=6, columnspan=5)
+
+def update_duration(event):
+    """ updates the duration after finding the duration """
+    duration = videoplayer.video_info()["duration"]
+    end_time["text"] = str(datetime.timedelta(seconds=duration))
+    progress_slider["to"] = duration
+
+
+def update_scale(event):
+    """ updates the scale value """
+    progress_value.set(videoplayer.current_duration())
+
+
+def load_video():
+    """ loads the video """
+    file_path = filedialog.askopenfilename()
+
+    if file_path:
+        videoplayer.load(file_path)
+
+        progress_slider.config(to=0, from_=0)
+        play_pause_btn["text"] = "Play"
+        progress_value.set(0)
+
+
+def seek(value):
+    """ used to seek a specific timeframe """
+    print(value)
+    videoplayer.seek(int(value))
+    progress_value.set(value)
+
+
+def skip(value: int):
+    """ skip seconds """
+    videoplayer.seek(int(progress_slider.get())+value)
+    progress_value.set(progress_slider.get() + value)
+
+
+def play_pause():
+    """ pauses and plays """
+    if videoplayer.is_paused():
+        videoplayer.play()
+        play_pause_btn["text"] = "Pause"
+
+    else:
+        videoplayer.pause()
+        play_pause_btn["text"] = "Play"
+
+
+def video_ended(event):
+    """ handle video ended """
+    progress_slider.set(progress_slider["to"])
+    play_pause_btn["text"] = "Play"
+    progress_slider.set(0)
+
+
+
+play_pause_btn = Button(controller, text="Play", command= play_pause)
+play_pause_btn.pack()
+
+skip_plus_5sec = Button(controller, text="Skip -5 sec", command=lambda:  skip(-5))
+skip_plus_5sec.pack(side="left")
+
+start_time = Label(controller, text=str(datetime.timedelta(seconds=0)))
+start_time.pack(side="left")
+
+progress_value = IntVar(controller)
+
+progress_slider = Scale(controller, variable=progress_value, from_=0, to=0, orient="horizontal", command= seek)
+
+progress_slider.pack(side="left", fill="x", expand=True)
+
+end_time = Label(controller, text=str(datetime.timedelta(seconds=0)))
+end_time.pack(side="left")
+
+videoplayer.bind("<<Duration>>",  update_duration)
+videoplayer.bind("<<SecondChanged>>",  update_scale)
+videoplayer.bind("<<Ended>>",  video_ended )
+
+skip_plus_5sec = Button(controller, text="Skip +5 sec", command=lambda:  skip(5))
+skip_plus_5sec.pack(side="left")
+
+
+#--------------------------------------------
+
+#Looping options
+vidCurrentLoop=0
+def vidStartLoop():
+    global vidCurrentLoop
+    global vidLooplist
+    vidCurrentLoop=0
+    
+    seek(vidLooplist[vidCurrentLoop])
+    print(vidLooplist[vidCurrentLoop])
+    vidCurrentLoop= vidCurrentLoop+1
+    videoplayer.play()
+    time.sleep(0.1)
+    videoplayer.pause()
+def vidForwardLoop():
+    global vidCurrentLoop
+    if vidCurrentLoop<len(vidLooplist):
+        
+        seek(vidLooplist[vidCurrentLoop])
+        print(vidLooplist[vidCurrentLoop])
+        vidCurrentLoop=vidCurrentLoop+1
+        videoplayer.play()
+        time.sleep(0.1)
+        videoplayer.pause()
+    else:
+        vidCurrentLoop=0
+        
+        seek(vidLooplist[vidCurrentLoop])
+        print(vidLooplist[vidCurrentLoop])
+        vidCurrentLoop=vidCurrentLoop+1
+        videoplayer.play()
+        time.sleep(0.1)
+        videoplayer.pause()
+
+vidStartLooping = Button(page3, text="start looping", command=vidStartLoop)
+vidStartLooping.grid(row=0, column=3)
+vidNext = Button(page3, text="nextpage", command=vidForwardLoop)
+vidNext.grid(row=0, column=6)
+
+
+#Settings for window
 page1.tkraise()
-
-page1.tkraise()
-
-page1.tkraise()
-
-page1.tkraise()
-
-
+w, h = main.winfo_screenwidth(), main.winfo_screenheight()
+main.geometry("%dx%d+0+0" % (w, h))
 
 main.title("TabsPedal")
 main.mainloop()
