@@ -1,6 +1,4 @@
-
 from tkinter import *
-
 import datetime
 import time
 from tkPDFViewer import tkPDFViewer as pdf
@@ -9,29 +7,39 @@ import PyPDF2
 import tkVideoPlayer as video
 main=  Tk()
 
+
 #Home page
 main.state('zoomed')
-page1 = Frame(main, padx=100, pady=100)
-page1.grid(row=0, column=0)
+page1 = Frame(main, background='white')
+page1.place(anchor='nw', relwidth=1, relheight=1)
+currentPage=0
+def openVideoPage():
+    global currentPage
+    page3.tkraise()
+    currentPage=2
+
+def openPDFPage():
+    global currentPage
+    page2.tkraise()
+    currentPage=1
+title1 = Label(page1, text="",  font=('ariel', 25))
+title1.place(anchor='center', relx=0.5, rely=0.3)
+selectVideo = Button(page1, text="Video", command=openVideoPage)
+selectPdf = Button(page1, text="PDF", command=openPDFPage)
 
 
-title1 = Label(page1, text="home")
-title1.grid(row=0, column=0, pady=20)
-
-selectVideo = Button(page1, text="Video", command=lambda: page3.tkraise())
-selectPdf = Button(page1, text="PDF", command=lambda: page2.tkraise())
-
-selectPdf.grid(row=1, column=0)
-selectVideo.grid(row=2, column=0)
+selectPdf.place(anchor='center', relx=0.5, rely=0.5)
+selectVideo.place(anchor='center', relx=0.5, rely=0.6)
 
 #PDF
-page2 = Frame(main, padx=100)
-page2.grid(row=0, column=0)
+page2 = Frame(main)
+page2.place(anchor='nw', relwidth=1, relheight=1)
 
 title2 = Label(page2, text="pdf analysis")
 title2.grid(column=0, row=0, pady=20)
 
-
+home2 = Button(page2, text="Home", command=lambda: page1.tkraise())
+home2.grid(column=1, row=0)
 #-------------------PDF stuff----------------------
 #Add go-to-page function
 class ShowPdf(pdf.ShowPdf):
@@ -107,7 +115,8 @@ def forwardLoop():
 startLooping = Button(page2, text="start looping", command=loopStarts)
 startLooping.grid(row=8)
 Next = Button(page2, text="nextpage", command=forwardLoop)
-Next.grid(row=9)
+
+Next.grid(column = 10)
 
 
 
@@ -118,11 +127,14 @@ Next.grid(row=9)
 
 
 #video
-page3 = Frame(main, width= 500,height=500)
-page3.grid(row=0, column=0)
+page3 = Frame(main)
+page3.place(anchor='nw', relwidth=1, relheight=1)
 
 title3 = Label(page3, text="video analysis")
 title3.grid(pady=20, column=0, row=0)
+
+home3 = Button(page3, text="Home", command=lambda: page1.tkraise())
+home3.grid(column=2, row=0)
 
 videoplayer=video.TkinterVideo(page3)
 def displayVid():
@@ -326,10 +338,44 @@ def vidForwardLoop():
 
 vidStartLooping = Button(page3, text="start looping", command=vidStartLoop)
 vidStartLooping.grid(row=0, column=3)
+
+
 vidNext = Button(page3, text="nextpage", command=vidForwardLoop)
 vidNext.grid(row=0, column=6)
 
 
+def on_press(key):
+    print('{0} pressed'.format(
+        key))
+
+def on_release(key):
+    print('{0} release'.format(
+        key))
+    if key == 1:
+        # Stop listener
+        if(currentPage==1):
+            forwardLoop()
+            print('pressed')
+        elif (currentPage==2):
+            vidForwardLoop()
+        return False
+
+def key_pressed(event):
+   
+    if event.keycode == 39:
+        # Stop listener
+        if(currentPage==1):
+            forwardLoop()
+            print('pressed')
+        elif (currentPage==2):
+            vidForwardLoop()
+        return False
+    
+main.bind("<Key>",key_pressed)
+# Collect events until released
+
+
+        
 #Settings for window
 page1.tkraise()
 w, h = main.winfo_screenwidth(), main.winfo_screenheight()
@@ -337,4 +383,6 @@ main.geometry("%dx%d+0+0" % (w, h))
 
 main.title("TabsPedal")
 main.mainloop()
+
+
 
